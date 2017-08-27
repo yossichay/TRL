@@ -140,11 +140,11 @@ add new line with `dtoverlay=pi3-disable-wifi` to `/boot/config.txt`
 
  Open Volumio on a browser (volumio.local), go to settings:
  
- ![](/home/yossi/volumio/TRL/Volumio-Settings.png) 
+ ![](./Volumio-Settings.png) 
  
  Select **PLAYBACK OPTIONS** and select **AudioInjector** from output devices dropdown and press **SAVE**
  
- ![](/home/yossi/volumio/TRL/Volumio-Playback-Options.png) 
+ ![](./Volumio-Playback-Options.png) 
 
 ## Setting MOVE system HotSpot 
 
