@@ -160,8 +160,88 @@ ssh into the system:
 ssh volumio@volumio.local
 ```
 
+Enable sudo by volumio user without password:
+
+```
+sudo visudo
+```
+Comment the line
+```
+volumio ALL=(ALL) NOPASSWD: /sbin/poweroff,/sbin/shutdown,/sbin/reboot,/sbin/halt,/bin/systemctl,/u$
+```
+Add this line at the end:
+```
+volumio ALL=(ALL) NOPASSWD: ALL
+```
+Save and exit
+
+### Get the files from GitHub
+
+```
+cd ~
+git clone https://github.com/yossichay/TRL.git
+```
+
+### Installing MOVE Hardware control program
+
+MOVE Hardware control program is loaded on startup and runs in the background, updating OLED, LEDs, GPIOs and power management.
+
+```
+sudo apt-get install build-essential git-core libi2c-dev i2c-tools lm-sensors libmpdclient-dev
+```
+
+Add the two following lines into the file ```/etc/modules```
+
+```
+i2c-bcm2708
+i2c-dev
+```
+
+**Installation of SSD1306 Driver:**
+
+```
+cd TRL
+cd timule-hw-ctl/ArduiPi_SSD1306/
+sudo make
+cd ../src
+make
+sudo mkdir /volumio/hw
+cp oled /volumio/hw
+cd ..
+sudo cp move-hw.sh /etc/init.d 
+```
+
+Test the OLED:
+```
+cd /volumio/hw
+sudo ./oled -o 3
+```
+Setup ```oled``` to run at startup:
 
 
+**Password is required for zip files***
+```
+cd ~/TRL
+unzip vol-timule-etc.zip
+sudo cp vol-timule-etc/init.d/move-hw.sh /etc/init.d/
+cd /etc/init.d
+sudo chmod +x move-hw.sh
+sudo update-rc.d move-hw.sh defaults
+``` 
+
+### Copy backend apps
+
+
+```
+cd ~/TRL
+unzip vol-timule-volumio.zip
+cd vol-timule-volumio
+sudo systemctl stop volumio
+cp * /volumio
+```
+### Copy the media and playlists
+
+Get it from Google Drive
 
 
 
