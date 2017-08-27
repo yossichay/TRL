@@ -2,6 +2,7 @@
 
 ## Volumio image
 
+**Pre-build image is [here](https://drive.google.com/open?id=0B6uAfFqeCQmvR3huNFNmTF9zbWM)**
 
 Install system prereqs (on your Linux machine):
 
@@ -140,17 +141,21 @@ add new line with `dtoverlay=pi3-disable-wifi` to `/boot/config.txt`
 
  Open Volumio on a browser (volumio.local), go to settings:
  
- ![](./Volumio-Settings.png) 
+ ![](./images/Volumio-Settings.png) 
  
  Select **PLAYBACK OPTIONS** and select **AudioInjector** from output devices dropdown and press **SAVE**
  
- ![](./Volumio-Playback-Options.png) 
+ ![](./images/Volumio-Playback-Options.png) 
 
 ## Setting MOVE system HotSpot 
 
 * Go back to Volumio settings --> NETWORK and modify **Hotspot Name** from ```Volumio``` to ```MOVE-010001``` (Replace 010001 with the serial number).
 * Modify **Hotspot Password** to ```timule-move```
 * **SAVE**
+
+## Connect MOVE to local network to proceed with installatoin
+
+Use a browser to connect to volumio.local and go to NETWORK to select your preffered WiFi network
 
 ## Installing MOVE files
 
@@ -242,8 +247,8 @@ cp * /volumio
 ### Copy the media and playlists
 
 Get it from Google Drive
-
-
+Copy media files to ```/data/INTERNAL```
+copy playlists to ```/data/playlist```
 
 
 
