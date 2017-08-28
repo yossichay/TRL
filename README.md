@@ -67,7 +67,7 @@ Enable Audio Injector driver
 sudo echo 'dtoverlay=audioinjector-addons' >> /boot/config.txt
 ```
 
-Reboot
+Reboot **twice**
 ```
 reboot
 ```
@@ -192,7 +192,7 @@ git clone https://github.com/yossichay/TRL.git
 MOVE Hardware control program is loaded on startup and runs in the background, updating OLED, LEDs, GPIOs and power management.
 
 ```
-sudo apt-get install build-essential git-core libi2c-dev i2c-tools lm-sensors libmpdclient-dev
+sudo apt-get install build-essential git-core libi2c-dev i2c-tools lm-sensors libmpdclient-dev unzip
 ```
 
 Add the two following lines into the file ```/etc/modules```
@@ -224,15 +224,15 @@ sudo ./oled -o 3
 Setup ```oled``` to run at startup:
 
 
-**Password is required for zip files***
 ```
-cd ~/TRL
-unzip vol-timule-etc.zip
-sudo cp vol-timule-etc/init.d/move-hw.sh /etc/init.d/
 cd /etc/init.d
 sudo chmod +x move-hw.sh
 sudo update-rc.d move-hw.sh defaults
 ``` 
+
+Don't worry about the warning
+
+**Password is required for zip files**
 
 ### Copy backend apps
 
@@ -240,9 +240,9 @@ sudo update-rc.d move-hw.sh defaults
 ```
 cd ~/TRL
 unzip vol-timule-volumio.zip
-cd vol-timule-volumio
+cd vol-timule-volumio/volumio-root/volumio
 sudo systemctl stop volumio
-cp * /volumio
+sudo cp -rf * /volumio
 ```
 ### Copy the media and playlists
 
