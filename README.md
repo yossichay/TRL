@@ -282,5 +282,69 @@ Change the line ```var bedName="????"``` to ```var bedName="MOVE0100001"```
 
 Do the same in the file ```/volumio/osc/mainOscServer.js```
 
+## Mounting S3 bucket
+
+In order to use AWS S3 bucket for updates (and perhaps streaming), we want to mount it as a local drive.
+
+Currently, the Bucket name is **timule-move** which is a unique name.
+
+1. Remove existing package
+
+```
+sudo su
+apt-get remove fuse
+```
+
+Inatall required packages:
+```
+apt-get install automake autotools-dev fuse g++ git libcurl4-gnutls-dev libfuse-dev libssl-dev libxml2-dev make pkg-config
+```
+Download and compile Fuse:
+
+```
+cd /usr/src/
+wget https://github.com/libfuse/libfuse/releases/download/fuse-3.0.0/fuse-3.0.0.tar.gz
+tar xzf fuse-3.0.0.tar.gz
+cd fuse-3.0.0
+./configure -prefix=/usr/local
+make && make install
+export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+ldconfig
+modprobe fuse
+```
+Download and install s3fs:
+```
+cd /usr/src
+git clone https://github.com/s3fs-fuse/s3fs-fuse.git
+cd s3fs-fuse
+./autogen.sh
+./configure
+make
+make install
+exit
+```
+
+Create password file:
+```
+echo AWS_ACCESS_KEY_ID:AWS_SECRET_ACCESS_KEY >> /volumio/timule-move-passwd
+```
+
+Mount S3 bucket locally:
+```
+mkdir /volumio/s3-bucket
+s3fs timule-move -o passwd_file=/volumio/timule-move-passwd
+```
+
+Now the S3 bucket is mounted locally at /volumio/s3-bucket
+
+Mount S3 bucket on boot:
+```
+sudo mkdir /tmp/cache
+sudo mkdir /volumio/s3-bucket
+sudo chmod 777 /tmp/cache /volumio/s3-bucket
+sudo nano /etc/fstab
+s3fs#timule-move /volumio/s3-bucket fuse allow_other,use_cache=/tmp/cache,uid=userid,gid=groupid 0 0
+mount -a
+```
 
 
