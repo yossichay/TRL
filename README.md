@@ -149,7 +149,7 @@ add new line with `dtoverlay=pi3-disable-wifi` to `/boot/config.txt`
 
 ## Setting MOVE system HotSpot 
 
-* Go back to Volumio settings --> NETWORK and modify **Hotspot Name** from ```Volumio``` to ```MOVE-010001``` (Replace 010001 with the serial number).
+* Go back to Volumio settings --> NETWORK and modify **Hotspot Name** from ```Volumio``` to ```MOVE010001``` (Replace 010001 with the serial number).
 * Modify **Hotspot Password** to ```timule-move```
 * **SAVE**
 
@@ -240,9 +240,9 @@ Don't worry about the warning
 ```
 cd ~/TRL
 unzip vol-timule-volumio.zip
-cd vol-timule-volumio/volumio-root/volumio
+cd volumio-root/volumio
 sudo systemctl stop volumio
-sudo cp -rf * /volumio
+sudo cp -rfpv * /volumio
 ```
 ### Copy the media and playlists
 
@@ -251,7 +251,36 @@ Copy media files to ```/data/INTERNAL```
 copy playlists to ```/data/playlist```
 
 
+### Change host name
 
+Run:
+```
+sudo nano /etc/hosts
+```
+
+You'll get back something like this:
+```
+127.0.0.1       localhost volumio 
+::1             localhost ip6-localhost ip6-loopback volumio ip6-volumio
+ff02::1         ip6-allnodes
+ff02::2         ip6-allrouters
+```
+
+Change **volumio** to the same HotSopt name (which is MOVE S/N) - such **MOVE0100001**
+
+Run:
+
+```
+sudo nano /etc/hostname
+```
+Change the name from **volumio** to **MOVE0100001**
+
+Now update the app (OSC server) with the same name:
+
+Edit the file ```/volumio/osc/wifi.js```
+Change the line ```var bedName="????"``` to ```var bedName="MOVE0100001"```
+
+Do the same in the file ```/volumio/osc/mainOscServer.js```
 
 
 

@@ -15,6 +15,7 @@
 
 
 #include <getopt.h>
+#include "bmps.h"
 
 #define PRG_NAME        "oled"
 #define PRG_VERSION     "1.0"
@@ -278,8 +279,10 @@ int main(int argc, char **argv)
 	
 	// Oled supported display in ArduiPi_SSD1306.h
 	// Get OLED type
-	parse_args(argc, argv);
+	// parse_args(argc, argv);
 
+	opts.oled = 3;
+	
 	// SPI
 	if (display.oled_is_spi_proto(opts.oled))
 	{
