@@ -22,7 +22,7 @@ SOURCES = ${PROGRAMS:=.cpp}
 all: ${PROGRAMS}
 
 ${PROGRAMS}: ${SOURCES}
-	gcc ${CCFLAGS} -Wall  -lssd1306 -lmpdclient $@.cpp -o $@
+	gcc ${CCFLAGS} -lssd1306 -lmpdclient $@.cpp -o $@
 
 clean:
 	rm -rf $(PROGRAMS)

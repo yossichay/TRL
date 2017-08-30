@@ -12,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <time.h>
 
 
 #include <getopt.h>
@@ -158,6 +159,90 @@ static unsigned char timule_full_logo_bmp[] =
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
+char res[1035];
+
+int exec_shell(char *cmd)
+{
+	FILE *fp;
+
+	fp = popen(cmd, "r");
+	if (fp == NULL) 
+	{
+    	//printf("Failed to run command\n" );
+    	return 0;
+  	}
+  	memset(res, 0, sizeof(res));
+  	fgets(res, sizeof(res)-1, fp);
+  	pclose(fp);
+  	return 1;
+}
+
+#define HOTSPOT 2
+#define WIFI 1
+
+struct netStat
+{
+	char ip_addr[20];
+	char ssid[100];
+	char ap_ssid[100];
+	char hostname[100];
+	char type[10];
+};
+
+int getNetStat(struct netStat *ns)
+{
+
+	//char Managed[] = "Managed\n";
+	//char Master[] = "Master\n";
+
+	ns->type[0] = 0;
+
+	if (exec_shell("ifconfig wlan0 | grep -Po 't addr:\\K[\\d.]+'"))
+    {
+    	strncpy(ns->ip_addr, res, 20);
+    	//ns->ip_addr[strlen(ns->ip_addr)-1] = 0;
+    	//printf("IP Address: %s", ip_addr);
+  	}
+ 	if (exec_shell("/sbin/iwconfig wlan0 | grep -Po 'Mode:\\K.\\w+'"))
+ 	{
+    	strncpy(ns->type, res, 10);
+    	/*
+    	if (strncmp(res, Managed,7) == 0)
+    	{
+    		ns->type = 1;
+    		//printf("WiFi SSID: ");
+    	}
+    	if (strncmp(res, Master, 7) == 0)
+    	{
+    		ns->type = 2;
+    		//printf("HotSpot SSID:");
+    	}
+   		*/
+    }
+ 	if (exec_shell("/sbin/iwconfig wlan0 | grep -Po 'SSID:\\K[\\S]+'"))
+ 	{
+    	strncpy(ns->ssid, &res[1], 100);
+    	ns->ssid[strlen(ns->ssid)-2] = 0;
+    	//printf("%s", ssid);
+    }
+    
+    if (exec_shell("cat /etc/hostapd/hostapd.conf | grep -Po 'ssid=\\K[\\S]+'"))
+ 	{
+    	strncpy(ns->ap_ssid, res, 100);
+    	//ns->ssid[strlen(ns->ssid)-2] = 0;
+    	//printf("%s", ssid);
+    }
+    
+	if (exec_shell("hostname"))
+	{
+    	strncpy(ns->hostname, res, 100);
+    	//ns->hostname[strlen(ns->hostname)-1] = 0;
+    	//printf("Hostname %s", hostname);
+    }
+    return 1;
+}
+
+
 
 static void print_tag(const struct mpd_song *song, enum mpd_tag_type type, const char *label)
 {
@@ -275,7 +360,16 @@ Comments:
 int main(int argc, char **argv)
 {
 	int i;
-	
+	struct mpd_status * status;
+	struct mpd_song *song;
+	struct mpd_connection *conn;
+	const struct mpd_audio_format *audio_format;
+	mpd_state currentStatus;
+	int totalTime, elapsedTime; 
+	const char *value;
+	struct netStat cur_ns, new_ns;
+	char cur_ns_type[10] = "";
+	int type = -10;
 	
 	// Oled supported display in ArduiPi_SSD1306.h
 	// Get OLED type
@@ -302,7 +396,7 @@ int main(int argc, char **argv)
   	// init done
   	display.clearDisplay();   // clears the screen and buffer
 
-
+/*
 	for (i = 0 ; i < 25 ; i+=2)
 	{
 		display.drawBitmap(0, 35,  timule_logo_text_bmp, TIMULE_LG_W, TIMULE_LG_H, 1);
@@ -311,10 +405,9 @@ int main(int argc, char **argv)
 //			sleep(0.3);
 		display.clearDisplay();   // clears the screen and buffer
 		}
+*/
 
 
-
-	struct mpd_connection *conn;
 
 	conn = mpd_connection_new(NULL, 0, 30000);
 
@@ -325,13 +418,22 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	struct mpd_status * status;
-	struct mpd_song *song;
-//	const struct mpd_audio_format *audio_format;
-	mpd_state currentStatus;
-	int totalTime, elapsedTime; 
-	const char *value;
 
+	//printf("Checking NetStat\n");
+
+
+	getNetStat(&cur_ns);
+
+	if (strcmp(cur_ns.type, "Managed\n") == 0)
+		type = 1;
+	if (strcmp(cur_ns.type, "Master\n") == 0)
+		type = 2;
+
+	//printf("Startup netStat:\n%s%s%s%d\n", cur_ns.hostname, cur_ns.ssid, cur_ns.ip_addr, type);
+
+	time_t wireless_timer = time(NULL);
+	time_t mpd_timer = time(NULL);
+	time_t cur_time;
 
 	i = 0;
 	display.setTextSize(1);
@@ -340,24 +442,92 @@ int main(int argc, char **argv)
 //	mpd_command_list_begin(conn, true);
 	while (1)
 	{
+		cur_time = time(NULL);
+		if (cur_time - mpd_timer < 1)
+		{
+			mpd_timer = cur_time;
+			continue;
+		}
+		//mpd_command_list_begin(conn, true);
 		mpd_send_status(conn);
-
+		//mpd_send_current_song(conn);
+		//mpd_command_list_end(conn);
 
 		status = mpd_recv_status(conn);
 		if (status == NULL) 
 		{
-			fprintf(stderr,"%d: %s\n", i, mpd_connection_get_error_message(conn));
+			fprintf(stderr,"XX%d: %s\n", i, mpd_connection_get_error_message(conn));
 			mpd_connection_free(conn);
 			return -1;
 		}
 		i++;
 	
+/*
+
+		mpd_response_next(conn);
+ 		while ((song = mpd_recv_song(conn)) != NULL) {
+                  printf("uri: %s\n", mpd_song_get_uri(song));
+                  print_tag(song, MPD_TAG_ARTIST, "artist");
+                  print_tag(song, MPD_TAG_ALBUM, "album");
+                  print_tag(song, MPD_TAG_TITLE, "title");
+                  print_tag(song, MPD_TAG_TRACK, "track");
+                  print_tag(song, MPD_TAG_NAME, "name");
+                  print_tag(song, MPD_TAG_DATE, "date");
+
+                  if (mpd_song_get_duration(song) > 0) {
+                        printf("time: %u\n", mpd_song_get_duration(song));
+                  }
+
+                  printf("pos: %u\n", mpd_song_get_pos(song));
+
+                  mpd_song_free(song);
+            }
+
+            if (mpd_connection_get_error(conn) != MPD_ERROR_SUCCESS) {
+                  fprintf(stderr,"%s\n", mpd_connection_get_error_message(conn));
+                  mpd_connection_free(conn);
+                  return -1;
+            }
+
+            if (!mpd_response_finish(conn)) {
+                  fprintf(stderr,"%s\n", mpd_connection_get_error_message(conn));
+                  mpd_connection_free(conn);
+                  return -1;
+            }
+      
+            mpd_status_free(status);
+
+*/
+		//mpd_response_next(conn);
 		currentStatus = mpd_status_get_state(status);
 		if (currentStatus == MPD_STATE_PLAY || currentStatus == MPD_STATE_PAUSE)
 		{
 			totalTime = mpd_status_get_total_time(status);
 			elapsedTime = mpd_status_get_elapsed_time(status);
 
+
+			if (currentStatus == MPD_STATE_PLAY)
+			{
+				display.clearDisplay();
+
+				//display.drawBitmap(54, 5,  play_bmp, 20, 20, 1);
+				display.fillTriangle(49, 1, 49, 31, 79, 15, 1);
+				display.setCursor(24,40);
+				display.setTextSize(2);
+				display.printf("%2d:%02d", (totalTime - elapsedTime) / 60, (totalTime - elapsedTime) % 60);
+
+			}
+			if (currentStatus == MPD_STATE_PAUSE)
+			{
+				display.clearDisplay();
+				//display.drawBitmap(54, 5,  pause_bmp, 20, 20, 1);
+				display.fillRect(49, 1, 10, 30, 1);
+				display.fillRect(69, 1, 10, 30, 1);
+				display.setCursor(24, 40);
+				display.setTextSize(2);
+				display.printf("%2d:%02d", (totalTime - elapsedTime) / 60, (totalTime - elapsedTime) % 60);
+			}
+/*
 			display.clearDisplay();
 			display.setCursor(0,30);
 			display.printf("%2d:%02d", elapsedTime / 60, elapsedTime % 60);
@@ -365,15 +535,23 @@ int main(int argc, char **argv)
 			display.printf("%2d:%02d", (totalTime - elapsedTime) / 60, (totalTime - elapsedTime) % 60);
 			if ((currentStatus == MPD_STATE_PAUSE && (i % 5) == 0) || currentStatus == MPD_STATE_PLAY)
 				display.drawHorizontalBargraph(14,47,100,16,1, (elapsedTime * 100) / totalTime);
-
-//			mpd_response_next(conn);
-
+*/			
 			mpd_send_current_song(conn);
-
-
-
 			if ((song = mpd_recv_song(conn)) != NULL) 
 			{
+			
+				if (opts.verbose)
+				{
+				  	printf("uri: %s\n", mpd_song_get_uri(song));
+				  	printf("Song: %s\n", mpd_song_get_tag(song, MPD_TAG_ARTIST, 0));
+                  	print_tag(song, MPD_TAG_ARTIST, "artist");
+                  	print_tag(song, MPD_TAG_ALBUM, "album");
+                  	print_tag(song, MPD_TAG_TITLE, "title");
+                  	print_tag(song, MPD_TAG_TRACK, "track");
+                  	print_tag(song, MPD_TAG_NAME, "name");
+                  	print_tag(song, MPD_TAG_DATE, "date");
+             	}
+				
 				
 				if ((value = mpd_song_get_tag(song, MPD_TAG_ARTIST, 0)) != NULL)
 				{
@@ -392,7 +570,10 @@ int main(int argc, char **argv)
 					print_tag(song, MPD_TAG_ARTIST, "artist");
 					print_tag(song, MPD_TAG_TITLE, "title");
 				}
+				
 			}
+
+
 			if (!mpd_response_finish(conn)) 
 			{
 				fprintf(stderr,"%s\n", mpd_connection_get_error_message(conn));
@@ -405,10 +586,45 @@ int main(int argc, char **argv)
 		}
 		else
 		{
-			display.clearDisplay();
-			display.drawBitmap(0, 0,  timule_full_logo_bmp, TIMULE_FULL_W, TIMULE_FULL_H, 1);
-			display.display();
+			cur_time = time(NULL);
+			if ((cur_time - wireless_timer) >= 2)
+			{
+				wireless_timer = cur_time;
+				getNetStat(&cur_ns);
+				if (strcmp(cur_ns.type, "Managed\n") == 0)
+					type = 1;
+				if (strcmp(cur_ns.type, "Master\n") == 0)
+					type = 2;
+			}
+			
+			if (type == 1)
+			{
+				display.clearDisplay();
+				display.drawBitmap(0, 0,  wifi_bmp_32x32, 32, 32, 1);
+				display.setCursor(38,10);
+				display.setTextSize(2);
+				display.printf("WiFi");
+				display.setCursor(38,30);
+				display.setTextSize(1);
+				display.printf("%s", cur_ns.ssid);
+				display.display();
+			}
+			if (type == 2)
+			{
+				display.clearDisplay();
+				display.drawBitmap(0, 0,  hotspot_bmp_32x32, 32, 32, 1);
+				display.setCursor(38,10);
+				display.setTextSize(2);
+				display.printf("HotSpot");
+				display.setCursor(38,30);
+				display.setTextSize(1);
+				display.printf("%s", cur_ns.ap_ssid);
+				display.display();
+			}
+			
+
 		}
+	
 	}
 
 	// Free PI GPIO ports
