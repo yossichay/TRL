@@ -327,6 +327,7 @@ exit
 Create password file:
 ```
 echo AWS_ACCESS_KEY_ID:AWS_SECRET_ACCESS_KEY >> /volumio/timule-move-passwd
+chmod 600 /volumio/timule-move-passwd
 ```
 
 Mount S3 bucket locally:
