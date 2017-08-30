@@ -332,7 +332,7 @@ echo AWS_ACCESS_KEY_ID:AWS_SECRET_ACCESS_KEY >> /volumio/timule-move-passwd
 Mount S3 bucket locally:
 ```
 mkdir /volumio/s3-bucket
-s3fs timule-move -o passwd_file=/volumio/timule-move-passwd
+s3fs timule-move  /volumio/s3-bucket -o passwd_file=/volumio/timule-move-passwd
 ```
 
 Now the S3 bucket is mounted locally at /volumio/s3-bucket
